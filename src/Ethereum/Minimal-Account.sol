@@ -33,14 +33,16 @@ contract MinimalAccount is IAccount, Ownable {
     IEntryPoint private immutable i_entryPoint;
 
     modifier requireFromEntryPoint() {
-        if (msg.sender != address(i_entryPoint))
+        if (msg.sender != address(i_entryPoint)) {
             revert MinimalAccount_NotFromEntryPoint();
+        }
         _;
     }
 
     modifier requireFromEntryPointOrOwner() {
-        if (msg.sender != address(i_entryPoint) && msg.sender != owner())
+        if (msg.sender != address(i_entryPoint) && msg.sender != owner()) {
             revert MinimalAccount_NotFromEntryPointOrOwner();
+        }
         _;
     }
 
@@ -49,24 +51,23 @@ contract MinimalAccount is IAccount, Ownable {
     }
 
     /// @dev This function will validate the userOp basically like a signature verification
-    function validateUserOp(
-        PackedUserOperation calldata userOp,
-        bytes32 userOpHash,
-        uint256 missingAccountFunds
-    ) external requireFromEntryPoint returns (uint256 validationData) {
+    function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 missingAccountFunds)
+        external
+        requireFromEntryPoint
+        returns (uint256 validationData)
+    {
         validationData = _validateSignature(userOp, userOpHash);
 
         _payRefund(missingAccountFunds);
     }
 
     // EIP-191 version of signed hash
-    function _validateSignature(
-        PackedUserOperation calldata userOp,
-        bytes32 userOpHash
-    ) internal view returns (uint256 validationData) {
-        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(
-            userOpHash
-        );
+    function _validateSignature(PackedUserOperation calldata userOp, bytes32 userOpHash)
+        internal
+        view
+        returns (uint256 validationData)
+    {
+        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(userOpHash);
 
         address signer = ECDSA.recover(ethSignedMessageHash, userOp.signature);
 
@@ -78,10 +79,7 @@ contract MinimalAccount is IAccount, Ownable {
     }
 
     function _payRefund(uint256 missingAccountFunds) internal {
-        (bool success, ) = payable(address(i_entryPoint)).call{
-            value: missingAccountFunds,
-            gas: type(uint256).max
-        }("");
+        (bool success,) = payable(address(i_entryPoint)).call{value: missingAccountFunds, gas: type(uint256).max}("");
 
         (success);
     }
@@ -94,11 +92,7 @@ contract MinimalAccount is IAccount, Ownable {
                                 EXECUTE
     //////////////////////////////////////////////////////////////*/
 
-    function execute(
-        address dest,
-        uint256 value,
-        bytes calldata funcData
-    ) external requireFromEntryPointOrOwner {
+    function execute(address dest, uint256 value, bytes calldata funcData) external requireFromEntryPointOrOwner {
         (bool success, bytes memory result) = dest.call{value: value}(funcData);
         if (!success) revert MinimalAccount_CallFailed(result);
     }
