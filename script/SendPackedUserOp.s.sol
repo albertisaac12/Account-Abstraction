@@ -13,14 +13,17 @@ contract SendPackedUserOp is Script {
 
     function run() public {}
 
-    function generateSignedUserOperation(bytes memory callData, HelperConfig.NetworkConfig memory config)
+    function generateSignedUserOperation(bytes memory callData, HelperConfig.NetworkConfig memory config,address minimalAccount)
         public
         view
         returns (PackedUserOperation memory, bytes32)
     {
         // 1 . Generate the unsigned data
-        uint256 nonce = vm.getNonce(config.account);
-        PackedUserOperation memory userOp = _generateUnsignedUserOperation(callData, config.account, nonce);
+        // uint256 nonce = vm.getNonce(config.account);
+        // uint256 nonce = vm.getNonce(minimalAccount);
+        uint256 nonce = vm.getNonce(minimalAccount)-1;
+        // PackedUserOperation memory userOp = _generateUnsignedUserOperation(callData, config.account, nonce);
+        PackedUserOperation memory userOp = _generateUnsignedUserOperation(callData, minimalAccount, nonce);
         // 2. Get the userOpHash
         bytes32 userOpHash = IEntryPoint(config.entryPoint).getUserOpHash(userOp);
 
@@ -33,12 +36,12 @@ contract SendPackedUserOp is Script {
         uint256 ANVIL_DEFAULT_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
         if (block.chainid == 31337) {
             (v, r, s) = vm.sign(ANVIL_DEFAULT_KEY, digest); // here the issue will come because the foundry is yet to add wallet instead of pvt key support
-            userOp.signature = abi.encodePacked(r, s, v); // 65 bytes in length
+            // userOp.signature = abi.encodePacked(r, s, v); // 65 bytes in length
         } else {
             // 3. Sign it and return it
             (v, r, s) = vm.sign(config.account, digest);
-            userOp.signature = abi.encodePacked(r, s, v); // Note the order
         }
+        userOp.signature = abi.encodePacked(r, s, v); // Note the order
 
         return (userOp, digest);
     }
