@@ -4,4 +4,6 @@ out = "out"
 libs = ["lib"]
 remappings=["@openzeppelin/contracts=lib/openzeppelin-contracts/contracts"]
 gas_reports = ["*"]
+optimizer = true
+optimizer_runs = 10000
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
