@@ -10,7 +10,7 @@ import {logic} from "./../src/dappunk/forwarder.sol";
 contract DeployMinimal is Script {
     function run() public {}
 
-    function deployMinimalAccount() public returns (HelperConfig, MinimalAccount,dappunkCreations) {
+    function deployMinimalAccount() public returns (HelperConfig, MinimalAccount, dappunkCreations) {
         HelperConfig helperConfig = new HelperConfig();
         HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
         address account = config.account;
@@ -25,11 +25,12 @@ contract DeployMinimal is Script {
         minimalAccount.transferOwnership(config.account);
 
         logic lc = new logic("meow");
-        dappunkCreations dc = new dappunkCreations(account,account,account,account,account,account,account,relayers,address(lc));
-        dc.grantRole(0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6,address(minimalAccount));
+        dappunkCreations dc =
+            new dappunkCreations(account, account, account, account, account, account, account, relayers, address(lc));
+        dc.grantRole(0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6, address(minimalAccount));
 
         vm.stopBroadcast();
 
-        return (helperConfig, minimalAccount,dc);
+        return (helperConfig, minimalAccount, dc);
     }
 }

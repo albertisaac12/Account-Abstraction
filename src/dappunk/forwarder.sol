@@ -121,18 +121,24 @@ contract logic is ERC2771Forwarder, AccessControl, ReentrancyGuard {
 
     /// @dev Executes a forwarder request if valid.
     /// @param request The forwarder request data.
-    function execute(
-        ForwardRequestData calldata request
-    ) public payable override(ERC2771Forwarder) _depricated nonReentrant {
+    function execute(ForwardRequestData calldata request)
+        public
+        payable
+        override(ERC2771Forwarder)
+        _depricated
+        nonReentrant
+    {
         if (!customEnabler[bytes4(request.data)]) {
-            if (!signatureEnabler[bytes4(request.data)][request.data.length])
+            if (!signatureEnabler[bytes4(request.data)][request.data.length]) {
                 revert invalidRequest();
+            }
 
             if (hasRole(MANAGER_ROLE, msg.sender)) {
                 ERC2771Forwarder.execute(request);
             } else {
-                if (!nativeEnabler[bytes4(request.data)])
+                if (!nativeEnabler[bytes4(request.data)]) {
                     revert callNotAllowed();
+                }
                 ERC2771Forwarder.execute(request);
             }
         } else {
@@ -144,12 +150,10 @@ contract logic is ERC2771Forwarder, AccessControl, ReentrancyGuard {
     /// @dev Adds a new signature with data length to the signature enabler.
     /// @param _signature The function signature to add.
     /// @param _dataLength The corresponding data length.
-    function addSignatures(
-        bytes4 _signature,
-        uint256 _dataLength
-    ) external onlyRole(MANAGER_ROLE) nonReentrant {
-        if (signatureEnabler[_signature][_dataLength])
+    function addSignatures(bytes4 _signature, uint256 _dataLength) external onlyRole(MANAGER_ROLE) nonReentrant {
+        if (signatureEnabler[_signature][_dataLength]) {
             revert signatureAlreadyPresent();
+        }
         signatureEnabler[_signature][_dataLength] = true;
         emit signatureAdded(_signature);
     }
@@ -157,21 +161,17 @@ contract logic is ERC2771Forwarder, AccessControl, ReentrancyGuard {
     /// @dev Deletes a signature with a specific data length from the signature enabler.
     /// @param _signature The function signature to delete.
     /// @param _dataLength The corresponding data length to delete.
-    function deleteSignature(
-        bytes4 _signature,
-        uint256 _dataLength
-    ) external onlyRole(MANAGER_ROLE) nonReentrant {
-        if (!signatureEnabler[_signature][_dataLength])
+    function deleteSignature(bytes4 _signature, uint256 _dataLength) external onlyRole(MANAGER_ROLE) nonReentrant {
+        if (!signatureEnabler[_signature][_dataLength]) {
             revert signatureDisabled();
+        }
         delete signatureEnabler[_signature][_dataLength];
         emit signatureDeleted(_signature);
     }
 
     /// @dev Adds a signature to the native enabler mapping.
     /// @param _signature The function signature to enable for native function calls.
-    function addToNativeEnabler(
-        bytes4 _signature
-    ) external onlyRole(MANAGER_ROLE) nonReentrant {
+    function addToNativeEnabler(bytes4 _signature) external onlyRole(MANAGER_ROLE) nonReentrant {
         if (nativeEnabler[_signature]) revert nativeSignatureAlreadyPresent();
         nativeEnabler[_signature] = true;
         emit nativeSignatureAdded(_signature);
@@ -179,9 +179,7 @@ contract logic is ERC2771Forwarder, AccessControl, ReentrancyGuard {
 
     /// @dev Deletes a signature from the native enabler mapping.
     /// @param _signature The function signature to disable for native function calls.
-    function deleteNativeSignature(
-        bytes4 _signature
-    ) external onlyRole(MANAGER_ROLE) nonReentrant {
+    function deleteNativeSignature(bytes4 _signature) external onlyRole(MANAGER_ROLE) nonReentrant {
         if (!nativeEnabler[_signature]) revert nativeSignatureDisabled();
         delete nativeEnabler[_signature];
         emit nativeSignatureDeleted(_signature);
@@ -189,9 +187,7 @@ contract logic is ERC2771Forwarder, AccessControl, ReentrancyGuard {
 
     /// @dev Adds a signature to the custom enabler mapping.
     /// @param _signature The function signature to enable for custom gifting calls.
-    function addTocustomEnabler(
-        bytes4 _signature
-    ) external onlyRole(MANAGER_ROLE) nonReentrant {
+    function addTocustomEnabler(bytes4 _signature) external onlyRole(MANAGER_ROLE) nonReentrant {
         if (customEnabler[_signature]) revert customSignatureAlreadyPresent();
         customEnabler[_signature] = true;
         emit customSignatureAdded(_signature);
@@ -199,9 +195,7 @@ contract logic is ERC2771Forwarder, AccessControl, ReentrancyGuard {
 
     /// @dev Deletes a signature from the custom enabler mapping.
     /// @param _signature The function signature to disable for custom gifting calls.
-    function deletecustomSignature(
-        bytes4 _signature
-    ) external onlyRole(MANAGER_ROLE) nonReentrant {
+    function deletecustomSignature(bytes4 _signature) external onlyRole(MANAGER_ROLE) nonReentrant {
         if (!customEnabler[_signature]) revert customSignatureDisabled();
         delete customEnabler[_signature];
         emit customSignatureDeleted(_signature);
@@ -211,10 +205,11 @@ contract logic is ERC2771Forwarder, AccessControl, ReentrancyGuard {
     /// @dev Currently, batch execution is not allowed and will revert.
     /// @param /*requests*/ Array of forwarder request data (unused).
     /// @param /*refundReceiver*/ Address for refunding unused gas (unused).
-    function executeBatch(
-        ForwardRequestData[] calldata /*requests*/,
-        address payable /*refundReceiver*/
-    ) public payable override(ERC2771Forwarder) {
+    function executeBatch(ForwardRequestData[] calldata, /*requests*/ address payable /*refundReceiver*/ )
+        public
+        payable
+        override(ERC2771Forwarder)
+    {
         revert();
     }
 
@@ -229,10 +224,8 @@ contract logic is ERC2771Forwarder, AccessControl, ReentrancyGuard {
 
     /// @dev Withdraws the Ether balance from the contract to a specified address.
     /// @param _to The address to receive the withdrawn Ether.
-    function withdraw(
-        address payable _to
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        (bool sent, ) = _to.call{value: address(this).balance}("");
+    function withdraw(address payable _to) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        (bool sent,) = _to.call{value: address(this).balance}("");
         if (!sent) revert();
     }
 }

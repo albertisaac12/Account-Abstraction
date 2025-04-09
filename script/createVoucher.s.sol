@@ -5,9 +5,10 @@ import {Script, console2} from "forge-std/Script.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-abstract contract CodeConstants is Script{
+abstract contract CodeConstants is Script {
     string constant DOMAIN = "moshpit";
     string constant VERSION = "1";
+
     struct NFTVoucher {
         uint256 tokenId;
         uint256 price;
@@ -23,13 +24,12 @@ abstract contract CodeConstants is Script{
     }
 
     address constant MINT_VALIDATOR = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; // ANVIL_DEFAULT Account
-    string  mnemonic = "test test test test test test test test test test test junk";
+    string mnemonic = "test test test test test test test test test test test junk";
     uint256 privateKey = vm.deriveKey(mnemonic, 0);
     address SIGNER = vm.rememberKey(privateKey);
 }
 
 contract creationsVoucher is Script, CodeConstants {
-    
     error creationVoucher__NotSameAddressAsTestWalletCreated();
 
     /*//////////////////////////////////////////////////////////////
@@ -46,25 +46,40 @@ contract creationsVoucher is Script, CodeConstants {
         _cachedDomainSeparator = _buildDomainSeparator(dappunkCreations);
     }
 
-    function generateVoucher(uint256 collectionIndex,uint256 tokenIndex,uint256 price,uint256 quantity,uint256 buyerQty,uint256 start,uint256 end,uint96 royalty,bool isStealth,bool isSbt,address creator) public pure returns(NFTVoucher memory nftVoucher){
-        uint256 tkID = generateTokenId(creator,collectionIndex,tokenIndex,quantity);
+    function generateVoucher(
+        uint256 collectionIndex,
+        uint256 tokenIndex,
+        uint256 price,
+        uint256 quantity,
+        uint256 buyerQty,
+        uint256 start,
+        uint256 end,
+        uint96 royalty,
+        bool isStealth,
+        bool isSbt,
+        address creator
+    ) public pure returns (NFTVoucher memory nftVoucher) {
+        uint256 tkID = generateTokenId(creator, collectionIndex, tokenIndex, quantity);
         nftVoucher = NFTVoucher({
-            tokenId:tkID,
-            price:price,
-            quantity:quantity,
-            buyerQty:buyerQty,
-            start:start,
-            end:end,
-            royalty:royalty,
-            isStealth:isStealth,
-            isSbt:isSbt,
+            tokenId: tkID,
+            price: price,
+            quantity: quantity,
+            buyerQty: buyerQty,
+            start: start,
+            end: end,
+            royalty: royalty,
+            isStealth: isStealth,
+            isSbt: isSbt,
             creator: hex"",
-            validator:hex""
+            validator: hex""
         });
     }
-    
-    function generateTokenId(address creator,uint256 collectionIndex,uint256 tokenIndex,uint256 tokenQty) internal pure returns(uint256){
 
+    function generateTokenId(address creator, uint256 collectionIndex, uint256 tokenIndex, uint256 tokenQty)
+        internal
+        pure
+        returns (uint256)
+    {
         // uint256 collectionIndexSize = 10; // in hex
         // uint256 tokenIndexSize = 10;
         // uint256 tokenQtySize = 4;
@@ -79,13 +94,16 @@ contract creationsVoucher is Script, CodeConstants {
         tokenId = (tokenId << 16) + tokenQty;
 
         return tokenId;
-        
     }
 
-    function generateEIP712StructHash(NFTVoucher memory voucher,address dappunkCreations) public view returns (bytes32 digest) {
+    function generateEIP712StructHash(NFTVoucher memory voucher, address dappunkCreations)
+        public
+        view
+        returns (bytes32 digest)
+    {
         // STEP 1 : Generate a EIP712 compliant voucher hash.
         // STEP 2 : Generate a Signature from the creator.
-        // STEP 3 : Generate a Signature from the Admin 
+        // STEP 3 : Generate a Signature from the Admin
 
         // For step on Import the EIP712 sol
         digest = _hashTypedDataV4(
@@ -104,39 +122,41 @@ contract creationsVoucher is Script, CodeConstants {
                     voucher.isStealth,
                     voucher.isSbt
                 )
-            ), dappunkCreations
+            ),
+            dappunkCreations
         );
-
     }
 
-    function generateSignedVoucher(NFTVoucher memory voucher,bytes32 digest) public view returns (NFTVoucher memory, bytes memory, bytes memory) {
-         // user Signature Generation
+    function generateSignedVoucher(NFTVoucher memory voucher, bytes32 digest)
+        public
+        view
+        returns (NFTVoucher memory, bytes memory, bytes memory)
+    {
+        // user Signature Generation
         uint8 v;
         bytes32 r;
         bytes32 s;
-        
-        if (voucher.tokenId >> 96 != uint256(uint160(SIGNER))) revert creationVoucher__NotSameAddressAsTestWalletCreated();
-        
+
+        if (voucher.tokenId >> 96 != uint256(uint160(SIGNER))) {
+            revert creationVoucher__NotSameAddressAsTestWalletCreated();
+        }
+
         // Creator signature
-        (v,r,s) = vm.sign(SIGNER,digest);
+        (v, r, s) = vm.sign(SIGNER, digest);
         voucher.creator = abi.encodePacked(r, s, v);
 
         //Admin Signature
-        (v,r,s) = vm.sign(MINT_VALIDATOR,digest);
+        (v, r, s) = vm.sign(MINT_VALIDATOR, digest);
         voucher.validator = abi.encodePacked(r, s, v);
 
-        return (voucher,voucher.creator,voucher.validator);
+        return (voucher, voucher.creator, voucher.validator);
     }
 
-
-    
     function _buildDomainSeparator(address dappunkCreations) private view returns (bytes32) {
         return keccak256(abi.encode(TYPE_HASH, _hashedName, _hashedVersion, block.chainid, dappunkCreations));
     }
 
-     function _hashTypedDataV4(bytes32 structHash,address dappunkCreations) internal view returns (bytes32) {
+    function _hashTypedDataV4(bytes32 structHash, address dappunkCreations) internal view returns (bytes32) {
         return MessageHashUtils.toTypedDataHash(_buildDomainSeparator(dappunkCreations), structHash);
     }
-
-
 }

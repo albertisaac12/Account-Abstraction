@@ -11,10 +11,10 @@ import {SendPackedUserOp, PackedUserOperation} from "script/SendPackedUserOp.s.s
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IEntryPoint} from "lib/account-abstraction/contracts/interfaces/IEntryPoint.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {creationsVoucher,CodeConstants} from "./../script/createVoucher.s.sol";
+import {creationsVoucher, CodeConstants} from "./../script/createVoucher.s.sol";
 import {dappunkCreations} from "./../src/dappunk/dappunkCreations.sol";
 
-contract MinimalAccountTest is Test , CodeConstants {
+contract MinimalAccountTest is Test, CodeConstants {
     using MessageHashUtils for bytes32;
 
     HelperConfig helperConfig;
@@ -29,7 +29,7 @@ contract MinimalAccountTest is Test , CodeConstants {
 
     function setUp() public {
         DeployMinimal deployMinimal = new DeployMinimal();
-        (helperConfig, minimalAccount,creations) = deployMinimal.deployMinimalAccount();
+        (helperConfig, minimalAccount, creations) = deployMinimal.deployMinimalAccount();
         usdc = new ERC20Mock();
         sendPackedUserOp = new SendPackedUserOp();
         cv = new creationsVoucher(address(creations));
@@ -153,72 +153,74 @@ contract MinimalAccountTest is Test , CodeConstants {
         assertEq(usdc.balanceOf(address(minimalAccount)), AMOUNT);
     }
 
-
     function testAddressRecoveredFromVoucher() public view {
         // generateVoucher(uint256 collectionIndex,uint256 tokenIndex,uint256 price,uint256 quantity,uint256 buyerQty,uint256 start,uint256 end,uint96 royalty,bool isStealth,bool isSbt,address creator)
-        NFTVoucher memory unsignedVoucher = cv.generateVoucher(1,1,1e18,10,1,0,0,0,false,false,SIGNER);
-        
-        bytes32 voucherHash = cv.generateEIP712StructHash(unsignedVoucher,address(creations));
+        NFTVoucher memory unsignedVoucher = cv.generateVoucher(1, 1, 1e18, 10, 1, 0, 0, 0, false, false, SIGNER);
 
-        (,bytes memory creatorSignature,bytes memory validatorSignature) = cv.generateSignedVoucher(unsignedVoucher,voucherHash);
+        bytes32 voucherHash = cv.generateEIP712StructHash(unsignedVoucher, address(creations));
+
+        (, bytes memory creatorSignature, bytes memory validatorSignature) =
+            cv.generateSignedVoucher(unsignedVoucher, voucherHash);
         address creator = ECDSA.recover(voucherHash, creatorSignature);
         address validator = ECDSA.recover(voucherHash, validatorSignature);
 
-        assertEq(creator,SIGNER);
-        assertEq(validator,MINT_VALIDATOR);
-
+        assertEq(creator, SIGNER);
+        assertEq(validator, MINT_VALIDATOR);
     }
 
-
-     function testVerifyVoucher() public view {
+    function testVerifyVoucher() public view {
         // generateVoucher(uint256 collectionIndex,uint256 tokenIndex,uint256 price,uint256 quantity,uint256 buyerQty,uint256 start,uint256 end,uint96 royalty,bool isStealth,bool isSbt,address creator)
-        NFTVoucher memory unsignedVoucher = cv.generateVoucher(1,1,1e18,10,1,0,0,0,false,false,SIGNER);
-        
-        bytes32 voucherHash = cv.generateEIP712StructHash(unsignedVoucher,address(creations));
+        NFTVoucher memory unsignedVoucher = cv.generateVoucher(1, 1, 1e18, 10, 1, 0, 0, 0, false, false, SIGNER);
 
-         (NFTVoucher memory signedVoucher,,) = cv.generateSignedVoucher(unsignedVoucher,voucherHash);
-       
-        address creator = creations.verifyVoucher(dappunkCreations.NFTVoucher({
-                    tokenId:signedVoucher.tokenId,
-                    price:signedVoucher.price,
-                    quantity:signedVoucher.quantity,
-                    buyerQty:signedVoucher.buyerQty,
-                    start:signedVoucher.start,
-                    end:signedVoucher.end,
-                    royalty:signedVoucher.royalty,
-                    isStealth:signedVoucher.isStealth,
-                    isSbt:signedVoucher.isSbt,
-                    creator:signedVoucher.creator,
-                    validator:signedVoucher.validator
-        }));
+        bytes32 voucherHash = cv.generateEIP712StructHash(unsignedVoucher, address(creations));
 
-        assertEq(creator,SIGNER);
+        (NFTVoucher memory signedVoucher,,) = cv.generateSignedVoucher(unsignedVoucher, voucherHash);
 
+        address creator = creations.verifyVoucher(
+            dappunkCreations.NFTVoucher({
+                tokenId: signedVoucher.tokenId,
+                price: signedVoucher.price,
+                quantity: signedVoucher.quantity,
+                buyerQty: signedVoucher.buyerQty,
+                start: signedVoucher.start,
+                end: signedVoucher.end,
+                royalty: signedVoucher.royalty,
+                isStealth: signedVoucher.isStealth,
+                isSbt: signedVoucher.isSbt,
+                creator: signedVoucher.creator,
+                validator: signedVoucher.validator
+            })
+        );
+
+        assertEq(creator, SIGNER);
     }
-
 
     function testMintWithEntryPoint() public {
-        NFTVoucher memory unsignedVoucher = cv.generateVoucher(1,1,1e18,10,1,0,0,0,false,false,SIGNER);
-        bytes32 voucherHash = cv.generateEIP712StructHash(unsignedVoucher,address(creations));
-        (NFTVoucher memory signedVoucher,,) = cv.generateSignedVoucher(unsignedVoucher,voucherHash);
+        NFTVoucher memory unsignedVoucher = cv.generateVoucher(1, 1, 1e18, 10, 1, 0, 0, 0, false, false, SIGNER);
+        bytes32 voucherHash = cv.generateEIP712StructHash(unsignedVoucher, address(creations));
+        (NFTVoucher memory signedVoucher,,) = cv.generateSignedVoucher(unsignedVoucher, voucherHash);
 
         address buyer = makeAddr("buyer");
         address dest = address(creations);
         uint256 value = 0;
         // Generate Data for execute
-         bytes memory functionData = abi.encodeWithSelector(creations.mintNft.selector,dappunkCreations.NFTVoucher({
-            tokenId:signedVoucher.tokenId,
-            price:signedVoucher.price,
-            quantity:signedVoucher.quantity,
-            buyerQty:signedVoucher.buyerQty,
-            start:signedVoucher.start,
-            end:signedVoucher.end,
-            royalty:signedVoucher.royalty,
-            isStealth:signedVoucher.isStealth,
-            isSbt:signedVoucher.isSbt,
-            creator:signedVoucher.creator,
-            validator:signedVoucher.validator
-        }),buyer);
+        bytes memory functionData = abi.encodeWithSelector(
+            creations.mintNft.selector,
+            dappunkCreations.NFTVoucher({
+                tokenId: signedVoucher.tokenId,
+                price: signedVoucher.price,
+                quantity: signedVoucher.quantity,
+                buyerQty: signedVoucher.buyerQty,
+                start: signedVoucher.start,
+                end: signedVoucher.end,
+                royalty: signedVoucher.royalty,
+                isStealth: signedVoucher.isStealth,
+                isSbt: signedVoucher.isSbt,
+                creator: signedVoucher.creator,
+                validator: signedVoucher.validator
+            }),
+            buyer
+        );
 
         bytes memory executeCallData =
             abi.encodeWithSelector(MinimalAccount.execute.selector, dest, value, functionData);
@@ -233,7 +235,7 @@ contract MinimalAccountTest is Test , CodeConstants {
         vm.prank(randomUser);
         IEntryPoint(helperConfig.getConfig().entryPoint).handleOps(ops, payable(randomUser));
 
-        assertEq(creations.balanceOf(buyer,signedVoucher.tokenId),1);
-
+        assertEq(creations.balanceOf(buyer, signedVoucher.tokenId), 1);
+    
     }
 }
